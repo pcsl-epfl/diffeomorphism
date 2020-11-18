@@ -9,26 +9,24 @@ import torch
 
 
 @functools.lru_cache()
-def _scalar_field(n, m):
+def scalar_field_modes(n, m):
+    """
+    sqrt(1 / Energy per mode) and the modes
+    """
     x = torch.linspace(0, 1, n, dtype=torch.float64)
-    k = torch.arange(0, m, dtype=torch.float64)
+    k = torch.arange(1, m + 1, dtype=torch.float64)
     i, j = torch.meshgrid(k, k)
     r = (i.pow(2) + j.pow(2)).sqrt()
-    e = (r < m) / r
-    e[0, :] = 0
-    e[:, 0] = 0
-    s = torch.sin(math.pi * x.reshape(n, 1) * k.reshape(1, m))
+    e = (r < m + 0.5) / r
+    s = torch.sin(math.pi * x[:, None] * k[None, :])
     return e, s
 
 
-def scalar_field(n, cut):
+def scalar_field(n, m):
     """
     random scalar field of size nxn made of the first m modes
-
-    m = n * cut
     """
-    m = round(n * cut)
-    e, s = _scalar_field(n, m)
+    e, s = scalar_field_modes(n, m)
     c = torch.randn(m, m, dtype=torch.float64) * e
     return torch.einsum('ij,xi,yj->yx', c, s, s)
 
@@ -39,7 +37,7 @@ def deform(img, T, cut):
 
     :param img Tensor: square image [batch, y, x]
     :param T float: temperature
-    :param cut float: high frequency cutoff between 0 and 1
+    :param cut int: high frequency cutoff
     """
     _, n, m = img.shape
     assert n == m
