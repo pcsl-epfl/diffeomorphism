@@ -40,3 +40,20 @@ def arbitrary_batch(dim):
             return x
         return g
     return decorator
+
+
+def texnum(x, mfmt='{}', noone=False):
+    """
+    Convert number into latex
+    """
+    m, e = "{:e}".format(x).split('e')
+    m, e = float(m), int(e)
+    mx = mfmt.format(m)
+    if e == 0:
+        if m == 1:
+            return "" if noone else "1"
+        return mx
+    ex = r"10^{{{}}}".format(e)
+    if m == 1:
+        return ex
+    return r"{}\;{}".format(mx, ex)
