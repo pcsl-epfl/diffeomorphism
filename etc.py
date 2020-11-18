@@ -2,10 +2,11 @@
 """
 unrelated functions
 """
-import math
 import functools
+import math
 
 import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
 
 
 def triangle(x1, x2, y1, y2=None, slope=None, text="{}"):
@@ -57,3 +58,15 @@ def texnum(x, mfmt='{}', noone=False):
     if m == 1:
         return ex
     return r"{}\;{}".format(mx, ex)
+
+
+@ticker.FuncFormatter
+def format_percent(x, _pos=None):
+    """
+    usage
+    plt.gca().yaxis.set_major_formatter(format_percent)
+    """
+    x = 100 * x
+    if abs(x - round(x)) > 0.05:
+        return r"${:.1f}\%$".format(x)
+    return r"${:.0f}\%$".format(x)
