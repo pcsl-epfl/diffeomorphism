@@ -9,12 +9,12 @@ import torch
 
 
 @functools.lru_cache()
-def scalar_field_modes(n, m):
+def scalar_field_modes(n, m, dtype=torch.float64):
     """
     sqrt(1 / Energy per mode) and the modes
     """
-    x = torch.linspace(0, 1, n)
-    k = torch.arange(1, m + 1, dtype=x.dtype)
+    x = torch.linspace(0, 1, n, dtype=dtype)
+    k = torch.arange(1, m + 1, dtype=dtype)
     i, j = torch.meshgrid(k, k)
     r = (i.pow(2) + j.pow(2)).sqrt()
     e = (r < m + 0.5) / r
@@ -26,7 +26,7 @@ def scalar_field(n, m):
     """
     random scalar field of size nxn made of the first m modes
     """
-    e, s = scalar_field_modes(n, m)
+    e, s = scalar_field_modes(n, m, dtype=torch.get_default_dtype())
     c = torch.randn(m, m) * e
     return torch.einsum('ij,xi,yj->yx', c, s, s)
 
