@@ -13,8 +13,8 @@ def scalar_field_modes(n, m):
     """
     sqrt(1 / Energy per mode) and the modes
     """
-    x = torch.linspace(0, 1, n, dtype=torch.float64)
-    k = torch.arange(1, m + 1, dtype=torch.float64)
+    x = torch.linspace(0, 1, n)
+    k = torch.arange(1, m + 1, dtype=x.dtype)
     i, j = torch.meshgrid(k, k)
     r = (i.pow(2) + j.pow(2)).sqrt()
     e = (r < m + 0.5) / r
@@ -27,38 +27,41 @@ def scalar_field(n, m):
     random scalar field of size nxn made of the first m modes
     """
     e, s = scalar_field_modes(n, m)
-    c = torch.randn(m, m, dtype=torch.float64) * e
+    c = torch.randn(m, m) * e
     return torch.einsum('ij,xi,yj->yx', c, s, s)
 
 
 def deform(img, T, cut):
     """
-    deform an image
-
-    :param img Tensor: square image [batch, y, x]
+    1. Sample a displacement field xi: R2 -> R2, using tempertature `T` and cutoff `cut`
+    2. Apply xi to `img`
+    :param img Tensor: square image(s) [..., y, x]
     :param T float: temperature
     :param cut int: high frequency cutoff
     """
-    _, n, m = img.shape
-    assert n == m
-
+    n = img.shape[-1]
+    assert img.shape[-2] == n, 'Image(s) should be square.'
+    
+    # Sample xi = (dx, dy)
     u = scalar_field(n, cut)  # [n,n]
     v = scalar_field(n, cut)  # [n,n]
     dx = T**0.5 * u
     dy = T**0.5 * v
-    img = remap(img, dx, dy)
-    return img
+    
+    # Apply xi
+    return remap(img, dx, dy)
 
 
 def remap(a, dx, dy):
     """
-    :param a: Tensor of shape [batch, y, x]
+    :param a: Tensor of shape [..., y, x]
     :param dx: Tensor of shape [y, x]
     :param dy: Tensor of shape [y, x]
     """
-    _, n, m = a.shape
-    assert dx.shape == (n, m) and dy.shape == (n, m)
-    y, x = torch.meshgrid(torch.arange(n).double(), torch.arange(m).double())
+    n, m = a.shape[-2:]
+    assert dx.shape == (n, m) and dy.shape == (n, m), 'Image(s) and displacement fields shapes should match.'
+        
+    y, x = torch.meshgrid(torch.arange(n, dtype=dx.dtype), torch.arange(m, dtype=dx.dtype))
     x = (x + dx).clamp(0, m-1)
     y = (y + dy).clamp(0, n-1)
 
