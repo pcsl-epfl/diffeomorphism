@@ -34,14 +34,14 @@ def scalar_field(n, m):
 def deform(image, T, cut):
     """
     1. Sample a displacement field xi: R2 -> R2, using tempertature `T` and cutoff `cut`
-    2. Apply xi to `img`
+    2. Apply xi to `image`
 
     :param img Tensor: square image(s) [..., y, x]
     :param T float: temperature
     :param cut int: high frequency cutoff
     """
-    n = img.shape[-1]
-    assert img.shape[-2] == n, 'Image(s) should be square.'
+    n = image.shape[-1]
+    assert image.shape[-2] == n, 'Image(s) should be square.'
     
     # Sample xi = (dx, dy)
     u = scalar_field(n, cut)  # [n,n]
@@ -50,7 +50,7 @@ def deform(image, T, cut):
     dy = T**0.5 * v
     
     # Apply xi
-    return remap(img, dx, dy)
+    return remap(image, dx, dy)
 
 
 def remap(a, dx, dy):
