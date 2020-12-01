@@ -31,32 +31,36 @@ def scalar_field(n, m):
     return torch.einsum('ij,xi,yj->yx', c, s, s)
 
 
-def deform(img, T, cut):
+def deform(image, T, cut):
     """
-    deform an image
+    1. Sample a displacement field xi: R2 -> R2, using tempertature `T` and cutoff `cut`
+    2. Apply xi to `img`
 
-    :param img Tensor: square image [batch, y, x]
+    :param img Tensor: square image(s) [..., y, x]
     :param T float: temperature
     :param cut int: high frequency cutoff
     """
-    _, n, m = img.shape
-    assert n == m
-
+    n = image.shape[-1]
+    assert image.shape[-2] == n
+    
+    # Sample xi = (dx, dy)
     u = scalar_field(n, cut)  # [n,n]
     v = scalar_field(n, cut)  # [n,n]
     dx = T**0.5 * u
     dy = T**0.5 * v
-    img = remap(img, dx, dy)
-    return img
+    
+    # Apply xi
+    return remap(image, dx, dy)
 
 
 def remap(a, dx, dy):
     """
-    :param a: Tensor of shape [batch, y, x]
+    :param a: Tensor of shape [..., y, x]
     :param dx: Tensor of shape [y, x]
     :param dy: Tensor of shape [y, x]
     """
-    _, n, m = a.shape
+    n, m = a.shape[-2:]
+    
     assert dx.shape == (n, m) and dy.shape == (n, m)
     y, x = torch.meshgrid(torch.arange(n).double(), torch.arange(m).double())
     x = (x + dx).clamp(0, m-1)
@@ -67,13 +71,12 @@ def remap(a, dx, dy):
     xc = x.ceil().long()
     yc = y.ceil().long()
 
-    def re(a, x, y):
-        _, n, m = a.shape
+    def re(x, y):
         i = m * y + x
         i = i.flatten()
-        return torch.index_select(a.reshape(-1, n * m), 1, i).reshape(-1, n, m)
+        return torch.index_select(a.reshape(-1, n * m), 1, i).reshape(a.shape)
 
     xv = x - xf
     yv = y - yf
 
-    return (1-yv)*(1-xv)*re(a, xf, yf) + (1-yv)*xv*re(a, xc, yf) + yv*(1-xv)*re(a, xf, yc) + yv*xv*re(a, xc, yc)
+    return (1-yv)*(1-xv)*re(xf, yf) + (1-yv)*xv*re(xc, yf) + yv*(1-xv)*re(xf, yc) + yv*xv*re(xc, yc)
