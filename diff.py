@@ -83,7 +83,7 @@ def remap(a, dx, dy):
     return (1-yv)*(1-xv)*re(xf, yf) + (1-yv)*xv*re(xc, yf) + yv*(1-xv)*re(xf, yc) + yv*xv*re(xc, yc)
 
 
-def templerature_range(n, cut):
+def temperature_range(n, cut):
     if isinstance(cut, (float, int)):
         log = math.log(cut)
     else:
