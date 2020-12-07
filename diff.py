@@ -81,3 +81,25 @@ def remap(a, dx, dy):
     yv = y - yf
 
     return (1-yv)*(1-xv)*re(xf, yf) + (1-yv)*xv*re(xc, yf) + yv*(1-xv)*re(xf, yc) + yv*xv*re(xc, yc)
+
+
+def temperature_range(n, cut):
+    if isinstance(cut, (float, int)):
+        log = math.log(cut)
+    else:
+        log = cut.log()
+    T1 = (0.5 / (0.28 * log + 0.7))**2
+    T2 = (0.4 * n * cut**(-1.1))**2
+    return T1, T2
+
+
+def typical_energy(n, T, cut):
+    return 3.5 * (cut/n)**2 * T
+
+
+def typical_displacement(T, cut):
+    if isinstance(cut, (float, int)):
+        log = math.log(cut)
+    else:
+        log = cut.log()
+    return T**0.5 * (0.28 * log + 0.7)
