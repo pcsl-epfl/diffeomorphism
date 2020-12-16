@@ -75,7 +75,7 @@ def remap(a, dx, dy):
     def re(x, y):
         i = m * y + x
         i = i.flatten()
-        return a.reshape(-1, n * m)[:,i].reshape(a.shape)[0]
+        return a.reshape(-1, n * m)[:,i].reshape(a.shape)
 
     xv = x - xf
     yv = y - yf
