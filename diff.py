@@ -72,15 +72,10 @@ def remap(a, dx, dy):
     xc = x.ceil().long()
     yc = y.ceil().long()
 
-    def re(x, y):
-        i = m * y + x
-        i = i.flatten()
-        return torch.index_select(a.reshape(-1, n * m), 1, i).reshape(a.shape)
-
     xv = x - xf
     yv = y - yf
 
-    return (1-yv)*(1-xv)*re(xf, yf) + (1-yv)*xv*re(xc, yf) + yv*(1-xv)*re(xf, yc) + yv*xv*re(xc, yc)
+    return (1-yv)*(1-xv)*a[:, yf, xf] + (1-yv)*xv*a[:, yf, xc] + yv*(1-xv)*a[:, yc, xf] + yv*xv*a[:, yc, xc]
 
 
 def temperature_range(n, cut):
