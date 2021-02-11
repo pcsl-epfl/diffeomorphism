@@ -8,6 +8,8 @@ Usage:
        
 where `T` is the temperature at which the corresponding displacement fields are drawn and `cut` is the high-frequency cutoff. 
 
+<img src="https://github.com/leonardopetrini/diffeo-sota/blob/web/docs/diffeo_grid.png" alt="diffeo_grid_example" width="550"/>
+
 An animated example can be found [here](https://leonardopetrini.github.io/diffeo-sota/).
 
 The range of temperatures corresponding to _natural_ diffeomorphisms - for given `n`, `cut` - can be computed by
