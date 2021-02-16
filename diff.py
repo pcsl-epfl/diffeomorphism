@@ -82,6 +82,7 @@ def remap(a, dx, dy, interp):
 
         return (1-yv)*(1-xv)*a[..., yf, xf] + (1-yv)*xv*a[..., yf, xc] + yv*(1-xv)*a[..., yc, xf] + yv*xv*a[..., yc, xc]
 
+
     if interp == 'gaussian':
         sigma = 0.4715
 

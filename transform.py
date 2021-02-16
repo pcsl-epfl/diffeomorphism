@@ -80,7 +80,7 @@ class Diffeo(torch.nn.Module):
     def __repr__(self):
         return self.__class__.__name__ + f'(sT={self.sT}, rT={self.rT}, scut={self.scut}, rcut={self.rcut}, cutmin={self.cutmin}, cutmax={self.cutmax})'
 
-
+    
 # class Diffeo(torch.nn.Module):
 #     """Randomly apply a diffeomorphism to the image(s).
 #     The image should be a Tensor and it is expected to have [..., n, n] shape,
