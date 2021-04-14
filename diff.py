@@ -31,26 +31,29 @@ def scalar_field(n, m):
     return torch.einsum('ij,xi,yj->yx', c, s, s)
 
 
-def deform(image, T, cut, interp='linear'):
+def deform(image, T, cut, interp='linear', k=8):
     """
-    1. Sample a displacement field xi: R2 -> R2, using tempertature `T` and cutoff `cut`
-    2. Apply xi to `image`
-
+    1. Sample a displacement field tau: R2 -> R2, using tempertature `T` and cutoff `cut`
+    2. Apply tau to `image`
     :param img Tensor: square image(s) [..., y, x]
     :param T float: temperature
     :param cut int: high frequency cutoff
     """
     n = image.shape[-1]
     assert image.shape[-2] == n, 'Image(s) should be square.'
+    
+    device = image.device.type
 
-    # Sample xi = (dx, dy)
-    u = scalar_field(n, cut)  # [n,n]
-    v = scalar_field(n, cut)  # [n,n]
-    dx = T**0.5 * u
-    dy = T**0.5 * v
+    # Sample dx, dy
+    # u, v are defined in [0, 1]^2
+    # dx, dx are defined in [0, n]^2
+    u = scalar_field(n, cut, device)  # [n,n]
+    v = scalar_field(n, cut, device)  # [n,n]
+    dx = T**0.5 * u * n
+    dy = T**0.5 * v * n
 
-    # Apply xi
-    return remap(image, dx, dy, interp)
+    # Apply tau
+    return remap(image, dx, dy, interp, k)
 
 
 def remap(a, dx, dy, interp):
@@ -91,22 +94,22 @@ def remap(a, dx, dy, interp):
 
 
 def temperature_range(n, cut):
+    """
+    Define the range of allowed temperature
+    for given image size and cut.
+    """
     if isinstance(cut, (float, int)):
         log = math.log(cut)
     else:
         log = cut.log()
-    T1 = (0.5 / (0.28 * log + 0.7))**2
-    T2 = (0.4 * n * cut**(-1.1))**2
+    T1 = 1 / (math.pi * n ** 2 * log)
+    T2 = 1 / (2 * math.pi * c ** 2 * log)
     return T1, T2
 
 
-def typical_energy(n, T, cut):
-    return 3.5 * (cut/n)**2 * T
-
-
-def typical_displacement(T, cut):
+def typical_displacement(T, cut, n):
     if isinstance(cut, (float, int)):
         log = math.log(cut)
     else:
         log = cut.log()
-    return T**0.5 * (0.28 * log + 0.7)
+    return n * (math.pi * T * log) ** .5 / 2
