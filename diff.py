@@ -102,8 +102,8 @@ def temperature_range(n, cut):
         log = math.log(cut)
     else:
         log = cut.log()
-    T1 = 1 / (math.pi * n ** 2 * log)
-    T2 = 1 / (2 * math.pi * c ** 2 * log)
+    T1 = 1 / (math.pi * n**2 * log)
+    T2 = 4 / (math.pi**3 * c**2 * log)
     return T1, T2
 
 
