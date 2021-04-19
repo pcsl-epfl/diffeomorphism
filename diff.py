@@ -67,8 +67,8 @@ def remap(a, dx, dy, interp):
 
     y, x = torch.meshgrid(torch.arange(n, dtype=dx.dtype), torch.arange(m, dtype=dx.dtype))
 
-    xn = (x + dx).clamp(0, m-1)
-    yn = (y + dy).clamp(0, n-1)
+    xn = (x - dx).clamp(0, m-1)
+    yn = (y - dy).clamp(0, n-1)
 
     if interp == 'linear':
         xf = xn.floor().long()
@@ -103,7 +103,7 @@ def temperature_range(n, cut):
     else:
         log = cut.log()
     T1 = 1 / (math.pi * n**2 * log)
-    T2 = 4 / (math.pi**3 * c**2 * log)
+    T2 = 4 / (math.pi**3 * cut**2 * log)
     return T1, T2
 
 
