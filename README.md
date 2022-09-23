@@ -1,7 +1,7 @@
 # Diffeomorphism
 
 arXiv preprint and reference: [Relative stability toward diffeomorphisms in deep nets indicates performance
-](https://arxiv.org/abs/2105.02468)
+](https://arxiv.org/abs/2105.02468) (NeurIPS 2021)
 
 Apply a maximum-entropy diffeomorphism to an image `img ~ [ch, n, n]`, in `PyTorch`.
 
