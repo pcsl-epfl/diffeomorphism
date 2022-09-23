@@ -93,6 +93,12 @@ def remap(a, dx, dy, interp):
         c = c / c.sum([2, 3], keepdim=True)
 
         return (c * a[..., None, None, :, :]).sum([-1, -2])
+    
+    if interp == 'nearest':
+        xn = xn.round().long()
+        yn = yn.round().long()
+        
+        return a[..., yn, xn]
 
 
 def temperature_range(n, cut):
