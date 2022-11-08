@@ -53,7 +53,7 @@ def deform(image, T, cut, interp='linear'):
     dy = T ** 0.5 * v * n
 
     # Apply tau
-    return remap(image, dx, dy, interp)
+    return remap(image, dx, dy, interp).contiguous()
 
 
 def remap(a, dx, dy, interp):
