@@ -7,7 +7,6 @@ import math
 
 import torch
 
-
 @functools.lru_cache()
 def scalar_field_modes(n, m, dtype=torch.float64, device='cpu'):
     """
@@ -15,26 +14,26 @@ def scalar_field_modes(n, m, dtype=torch.float64, device='cpu'):
     """
     x = torch.linspace(0, 1, n, dtype=dtype, device=device)
     k = torch.arange(1, m + 1, dtype=dtype, device=device)
-    i, j = torch.meshgrid(k, k)
+    i, j = torch.meshgrid(k, k, indexing='ij')
     r = (i.pow(2) + j.pow(2)).sqrt()
     e = (r < m + 0.5) / r
     s = torch.sin(math.pi * x[:, None] * k[None, :])
     return e, s
 
 
-def scalar_field(n, m, device='cpu'):
+def scalar_field(n, m, B, device='cpu'):
     """
     random scalar field of size nxn made of the first m modes
     """
     e, s = scalar_field_modes(n, m, dtype=torch.get_default_dtype(), device=device)
-    c = torch.randn(m, m, device=device) * e
-    return torch.einsum('ij,xi,yj->yx', c, s, s)
+    c = torch.randn(B, m, m, device=device) * e
+    return torch.einsum('bij,xi,yj->byx', c, s, s)
 
 
-def deform(image, T, cut, interp='linear'):
+def deform(image, T, cut, interp='linear', seed=None):
     """
-    1. Sample a displacement field xi: R2 -> R2, using tempertature `T` and cutoff `cut`
-    2. Apply xi to `image`
+    1. Sample a displacement field tau: R2 -> R2, using tempertature `T` and cutoff `cut`
+    2. Apply tau to `image`
     :param img Tensor: square image(s) [..., y, x]
     :param T float: temperature
     :param cut int: high frequency cutoff
@@ -43,14 +42,19 @@ def deform(image, T, cut, interp='linear'):
     assert image.shape[-2] == n, 'Image(s) should be square.'
     
     device = image.device.type
+    B = image.shape[0]
+    
+    if seed is not None:
+        torch.manual_seed(seed)
 
-    # Sample xi = (dx, dy)
-    u = scalar_field(n, cut, device)  # [n,n]
-    v = scalar_field(n, cut, device)  # [n,n]
-    dx = T**0.5 * u
-    dy = T**0.5 * v
-
-    # Apply xi
+    # Sample dx, dy
+    # u, v are defined in [0, 1]^2
+    # dx, dx are defined in [0, n]^2
+    u = scalar_field(n, cut, B, device)  # [n,n]
+    v = scalar_field(n, cut, B, device)  # [n,n]
+    dx = T**0.5 * u * n
+    dy = T**0.5 * v * n
+    # Apply tau
     return remap(image, dx, dy, interp)
 
 
@@ -61,12 +65,13 @@ def remap(a, dx, dy, interp):
     :param dy: Tensor of shape [y, x]
     """
     n, m = a.shape[-2:]
-    assert dx.shape == (n, m) and dy.shape == (n, m), 'Image(s) and displacement fields shapes should match.'
+#     assert dx.shape == (n, m) and dy.shape == (n, m), 'Image(s) and displacement fields shapes should match.'
 
     dtype = dx.dtype
     device = dx.device.type
+    B = a.shape[0]
     
-    y, x = torch.meshgrid(torch.arange(n, dtype=dtype, device=device), torch.arange(m, dtype=dtype, device=device))
+    y, x = torch.meshgrid(torch.arange(n, dtype=dtype, device=device), torch.arange(m, dtype=dtype, device=device), indexing='ij')
 
     xn = (x + dx).clamp(0, m-1)
     yn = (y + dy).clamp(0, n-1)
@@ -77,41 +82,29 @@ def remap(a, dx, dy, interp):
         xc = xn.ceil().long()
         yc = yn.ceil().long()
 
-        xv = xn - xf
-        yv = yn - yf
+        xv = (xn - xf).unsqueeze(1)
+        yv = (yn - yf).unsqueeze(1)
 
-        return (1-yv)*(1-xv)*a[..., yf, xf] + (1-yv)*xv*a[..., yf, xc] + yv*(1-xv)*a[..., yc, xf] + yv*xv*a[..., yc, xc]
-
-
-    if interp == 'gaussian':
-        sigma = 0.4715
-
-        dx = (xn[:, :, None, None] - x)
-        dy = (yn[:, :, None, None] - y)
-
-        c = (-dx**2 - dy**2).div(2 * sigma**2).exp()
-        c = c / c.sum([2, 3], keepdim=True)
-
-        return (c * a[..., None, None, :, :]).sum([-1, -2])
+        return (1-yv)*(1-xv)*a[torch.arange(B)[:, None, None], ..., yf, xf].permute(0, 3, 1, 2) + (1-yv)*xv*a[torch.arange(B)[:, None, None], ..., yf, xc].permute(0, 3, 1, 2) + yv*(1-xv)*a[torch.arange(B)[:, None, None], ..., yc, xf].permute(0, 3, 1, 2) + yv*xv*a[torch.arange(B)[:, None, None], ..., yc, xc].permute(0, 3, 1, 2)
 
 
 def temperature_range(n, cut):
+    """
+    Define the range of allowed temperature
+    for given image size and cut.
+    """
     if isinstance(cut, (float, int)):
         log = math.log(cut)
     else:
         log = cut.log()
-    T1 = (0.5 / (0.28 * log + 0.7))**2
-    T2 = (0.4 * n * cut**(-1.1))**2
+    T1 = 1 / (math.pi * n ** 2 * log)
+    T2 = 4 / (math.pi**3 * cut ** 2 * log)
     return T1, T2
 
 
-def typical_energy(n, T, cut):
-    return 3.5 * (cut/n)**2 * T
-
-
-def typical_displacement(T, cut):
+def typical_displacement(T, cut, n):
     if isinstance(cut, (float, int)):
         log = math.log(cut)
     else:
         log = cut.log()
-    return T**0.5 * (0.28 * log + 0.7)
+    return n * (math.pi * T * log) ** .5 / 2
