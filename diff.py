@@ -66,7 +66,10 @@ def remap(a, dx, dy, interp):
     n, m = a.shape[-2:]
     assert dx.shape == (n, m) and dy.shape == (n, m), 'Image(s) and displacement fields shapes should match.'
 
-    y, x = torch.meshgrid(torch.arange(n, dtype=dx.dtype), torch.arange(m, dtype=dx.dtype))
+    dtype = dx.dtype
+    device = dx.device.type
+    
+    y, x = torch.meshgrid(torch.arange(n, dtype=dtype, device=device), torch.arange(m, dtype=dtype, device=device), indexing='ij')
 
     xn = (x - dx).clamp(0, m-1)
     yn = (y - dy).clamp(0, n-1)
