@@ -34,7 +34,7 @@ def deform(image, T, cut, interp='linear', seed=None):
     """
     1. Sample a displacement field tau: R2 -> R2, using tempertature `T` and cutoff `cut`
     2. Apply tau to `image`
-    :param img Tensor: square image(s) [..., y, x]
+    :param img Tensor: square image(s) [B, :, y, x]
     :param T float: temperature
     :param cut int: high frequency cutoff
     """
@@ -50,8 +50,8 @@ def deform(image, T, cut, interp='linear', seed=None):
     # Sample dx, dy
     # u, v are defined in [0, 1]^2
     # dx, dx are defined in [0, n]^2
-    u = scalar_field(n, cut, B, device)  # [n,n]
-    v = scalar_field(n, cut, B, device)  # [n,n]
+    u = scalar_field(n, cut, B, device)  # [B,n,n]
+    v = scalar_field(n, cut, B, device)  # [B,n,n]
     dx = T**0.5 * u * n
     dy = T**0.5 * v * n
     # Apply tau
@@ -60,16 +60,15 @@ def deform(image, T, cut, interp='linear', seed=None):
 
 def remap(a, dx, dy, interp):
     """
-    :param a: Tensor of shape [..., y, x]
-    :param dx: Tensor of shape [y, x]
-    :param dy: Tensor of shape [y, x]
+    :param a: Tensor of shape [B, :, y, x]
+    :param dx: Tensor of shape [B, y, x]
+    :param dy: Tensor of shape [B, y, x]
     """
     n, m = a.shape[-2:]
-#     assert dx.shape == (n, m) and dy.shape == (n, m), 'Image(s) and displacement fields shapes should match.'
+    B = a.shape[0]
 
     dtype = dx.dtype
     device = dx.device.type
-    B = a.shape[0]
     
     y, x = torch.meshgrid(torch.arange(n, dtype=dtype, device=device), torch.arange(m, dtype=dtype, device=device), indexing='ij')
 
