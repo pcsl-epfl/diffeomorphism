@@ -83,8 +83,10 @@ def remap(a, dx, dy, interp):
 
         xv = (xn - xf).unsqueeze(1)
         yv = (yn - yf).unsqueeze(1)
+        
+        batch_idx = torch.arange(B)[:, None, None]
 
-        return (1-yv)*(1-xv)*a[torch.arange(B)[:, None, None], ..., yf, xf].permute(0, 3, 1, 2) + (1-yv)*xv*a[torch.arange(B)[:, None, None], ..., yf, xc].permute(0, 3, 1, 2) + yv*(1-xv)*a[torch.arange(B)[:, None, None], ..., yc, xf].permute(0, 3, 1, 2) + yv*xv*a[torch.arange(B)[:, None, None], ..., yc, xc].permute(0, 3, 1, 2)
+        return (1-yv)*(1-xv)*a[batch_idx, ..., yf, xf].permute(0, 3, 1, 2) + (1-yv)*xv*a[batch_idx, ..., yf, xc].permute(0, 3, 1, 2) + yv*(1-xv)*a[batch_idx, ..., yc, xf].permute(0, 3, 1, 2) + yv*xv*a[batch_idx, ..., yc, xc].permute(0, 3, 1, 2)
 
 
 def temperature_range(n, cut):
